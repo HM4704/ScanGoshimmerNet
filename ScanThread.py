@@ -44,7 +44,7 @@ class ScanThread(Thread):
         ni = NodeInfo.NodeInfo()
         ni.ip = ip
         try:
-            self.r = requests.get('http://' + ip + ':8080/info', timeout=2000)
+            self.r = requests.get('http://' + ip + ':8080/info', timeout=3)
         except:
             return ni
         if self.r.ok == True:
@@ -59,7 +59,7 @@ class ScanThread(Thread):
 
     def getKnownNodes(self, ip):
         try:
-            self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=2000)
+            self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=3)
             neighbors = json.loads(self.r.text)
         except:
             return

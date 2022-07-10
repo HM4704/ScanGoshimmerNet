@@ -57,20 +57,37 @@ class GridFrame(wx.Frame):
 
         self.Show(True)
 
+    def updateItem(self, nodeInfo):
+        for idx in range(0, self.list.GetItemCount()):
+            ip = self.list.GetItemText(idx, 0)
+            if ip == nodeInfo.ip:
+                key = self.list.GetItemData(idx)
+                self.nodes[key] = (nodeInfo.ip, nodeInfo.shortId, nodeInfo.synced, nodeInfo.enabledAPI, nodeInfo.accessMana)
+                self.list.SetItem(idx, 3, str(nodeInfo.enabledAPI))
+                self.list.SetItem(idx, 1, nodeInfo.shortId)
+                if nodeInfo.enabledAPI:
+                    self.list.SetItem(idx, 2, str(nodeInfo.synced))
+                    self.list.SetItem(idx, 4, str(nodeInfo.accessMana))
+                else:
+                    self.list.SetItem(idx, 2, "?")
+                    self.list.SetItem(idx, 4, "?")
+                return True
+        return False
 
     def update(self, message, arg2=None):
-        key = len(self.nodes)
-        self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.accessMana)
-        index = self.list.InsertItem(0, message.ip)
-        self.list.SetItem(index, 3, str(message.enabledAPI))
-        self.list.SetItem(index, 1, message.shortId)
-        if message.enabledAPI:
-            self.list.SetItem(index, 2, str(message.synced))
-            self.list.SetItem(index, 4, str(message.accessMana))
-        else:
-            self.list.SetItem(index, 2, "?")
-            self.list.SetItem(index, 4, "?")
-        self.list.SetItemData(index, key)
+        if not self.updateItem(message):
+            key = len(self.nodes)
+            self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.accessMana)
+            index = self.list.InsertItem(0, message.ip)
+            self.list.SetItem(index, 3, str(message.enabledAPI))
+            self.list.SetItem(index, 1, message.shortId)
+            if message.enabledAPI:
+                self.list.SetItem(index, 2, str(message.synced))
+                self.list.SetItem(index, 4, str(message.accessMana))
+            else:
+                self.list.SetItem(index, 2, "?")
+                self.list.SetItem(index, 4, "?")
+            self.list.SetItemData(index, key)
 
     def updateStatus(self, status):
         wx.CallAfter(self.OnStatus, status)
@@ -107,9 +124,10 @@ class GridFrame(wx.Frame):
 
 
     def OnRightDown(self, event):
-        pos = event.GetPosition()
-        #pos = self.panel.ScreenToClient(pos)
-        self.PopupMenu(self.popupmenu, pos)
+        if self.list.GetFirstSelected() != -1:
+            pos = event.GetPosition()
+            #pos = self.list.ScreenToClient(pos)
+            self.PopupMenu(self.popupmenu, pos)
 
 
     def OnClose(self, event):
@@ -120,7 +138,7 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="188.68.53.235",
+    parser.add_argument('-node', type=str, default="65.108.62.202",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

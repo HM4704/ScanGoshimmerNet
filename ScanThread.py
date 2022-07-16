@@ -22,8 +22,9 @@ class ScanThread(Thread):
         self.start()  # start the thread
 
     def run(self):
-        s = "  idle"
         s = self.getKnownNodes(self.firstIp)
+        if (len(s) == 0):
+            s = "  idle"
         while (self.running):
             # Wait for next message
             self.status = s
@@ -79,7 +80,7 @@ class ScanThread(Thread):
             act = act + 1
             if self.running == False: break
 
-        return
+        return ""
 
     def putMessage(self, message):
         self.queue.put(message)

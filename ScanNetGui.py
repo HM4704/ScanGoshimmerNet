@@ -138,7 +138,7 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="65.108.62.202",
+    parser.add_argument('-node', type=str, default="65.108.62.220",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

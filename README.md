@@ -13,6 +13,6 @@ The following dependencies have to be installed (besides python3):
 - pip install pypubsub 
 
 ## Execution
-python ScanNetGui.py [-node <node to start>]
+python ScanNetGui.py [-node start_node]
 
 

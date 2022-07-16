@@ -22,10 +22,11 @@ class ScanThread(Thread):
         self.start()  # start the thread
 
     def run(self):
-        self.getKnownNodes(self.firstIp)
+        s = "  idle"
+        s = self.getKnownNodes(self.firstIp)
         while (self.running):
             # Wait for next message
-            self.status = "  idle"
+            self.status = s
             message = self.queue.get()
             print("got message " + message)
             if (len(message) > 0):
@@ -61,8 +62,8 @@ class ScanThread(Thread):
         try:
             self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=3)
             neighbors = json.loads(self.r.text)
-        except:
-            return
+        except Exception as inst:
+            return "error " + str(type(inst)) + " while querying " + str(ip)
         known = neighbors['known']
         count = len(known)
         act = 1

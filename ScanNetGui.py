@@ -2,6 +2,7 @@ import wx
 import argparse
 import ScanThread
 from pubsub import pub
+from datetime import datetime
 import wx.lib.mixins.listctrl
 
 
@@ -22,17 +23,18 @@ class GridFrame(wx.Frame):
     nodes = {}
 
     def __init__(self, parent, node):
-        wx.Frame.__init__(self, parent, title="Goshimmer nodes", size=(900,800))
+        wx.Frame.__init__(self, parent, title="Goshimmer nodes", size=(1000,800))
 
         panel = wx.Panel(self)
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.list = SortedListCtrl(panel, data=self.nodes, colCount=5)
+        self.list = SortedListCtrl(panel, data=self.nodes, colCount=6)
         self.list.InsertColumn(0, 'IP', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(1, 'ID', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(2, 'synced', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(3, 'API(Port 8080)', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(4, 'aMana', wx.LIST_FORMAT_RIGHT, 150)
+        self.list.InsertColumn(5, 'ATT', wx.LIST_FORMAT_RIGHT, 200)
 
         box.Add(self.list, 1, wx.EXPAND)
         panel.SetSizer(box)
@@ -62,32 +64,33 @@ class GridFrame(wx.Frame):
             ip = self.list.GetItemText(idx, 0)
             if ip == nodeInfo.ip:
                 key = self.list.GetItemData(idx)
-                self.nodes[key] = (nodeInfo.ip, nodeInfo.shortId, nodeInfo.synced, nodeInfo.enabledAPI, nodeInfo.accessMana)
-                self.list.SetItem(idx, 3, str(nodeInfo.enabledAPI))
-                self.list.SetItem(idx, 1, nodeInfo.shortId)
-                if nodeInfo.enabledAPI:
-                    self.list.SetItem(idx, 2, str(nodeInfo.synced))
-                    self.list.SetItem(idx, 4, str(nodeInfo.accessMana))
-                else:
-                    self.list.SetItem(idx, 2, "?")
-                    self.list.SetItem(idx, 4, "?")
+                self.nodes[key] = (nodeInfo.ip, nodeInfo.shortId, nodeInfo.synced, nodeInfo.enabledAPI, nodeInfo.accessMana, nodeInfo.att)
+                self.updateLine(idx, nodeInfo)
                 return True
         return False
 
     def update(self, message, arg2=None):
         if not self.updateItem(message):
             key = len(self.nodes)
-            self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.accessMana)
+            self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.accessMana,message.att)
             index = self.list.InsertItem(0, message.ip)
-            self.list.SetItem(index, 3, str(message.enabledAPI))
-            self.list.SetItem(index, 1, message.shortId)
-            if message.enabledAPI:
-                self.list.SetItem(index, 2, str(message.synced))
-                self.list.SetItem(index, 4, str(message.accessMana))
+
+            self.updateLine(index, message)
+            self.list.SetItemData(index, key)
+
+    def updateLine(self, index, nodeInfo):
+            self.list.SetItem(index, 3, str(nodeInfo.enabledAPI))
+            self.list.SetItem(index, 1, nodeInfo.shortId)
+            if nodeInfo.enabledAPI:
+                self.list.SetItem(index, 2, str(nodeInfo.synced))
+                self.list.SetItem(index, 4, str(nodeInfo.accessMana))
+                att = str(datetime.fromtimestamp(nodeInfo.att/1000000000))
+                att = att.split('.')[0]  # throw away decimals
+                self.list.SetItem(index, 5, att)
             else:
                 self.list.SetItem(index, 2, "?")
                 self.list.SetItem(index, 4, "?")
-            self.list.SetItemData(index, key)
+                self.list.SetItem(index, 5, "?")
 
     def updateStatus(self, status):
         wx.CallAfter(self.OnStatus, status)
@@ -131,7 +134,6 @@ class GridFrame(wx.Frame):
 
 
     def OnClose(self, event):
-        self.thread.putMessage("")
         self.thread.stop()
         self.Destroy()  # you may also do:  event.Skip()
                         # since the default event handler does call Destroy(), too

@@ -22,9 +22,11 @@ class ScanThread(Thread):
         self.start()  # start the thread
 
     def run(self):
-        s = self.getKnownNodes(self.firstIp)
+        nodes = []
+        s = self.getKnownNodes(self.firstIp, nodes)
         if (len(s) == 0):
             s = "  idle"
+            self.queryNodes(nodes)
         while (self.running):
             # Wait for next message
             self.status = s
@@ -32,17 +34,18 @@ class ScanThread(Thread):
             print("got message " + message)
             if (len(message) > 0):
                 self.status = "  querying " + message
-                self.ni = self.get(message)
+                self.ni = self.getNodeInfo(message)
                 wx.CallAfter(self.postData, 0)
 
     def stop(self):
         self.status = "  stopping"
         self.running = False
+        self.putMessage("")
 
     def postData(self, amt):
         pub.sendMessage("node_listener", message=self.ni)
 
-    def get(self, ip):
+    def getNodeInfo(self, ip):
         ni = NodeInfo.NodeInfo()
         ni.ip = ip
         try:
@@ -54,33 +57,37 @@ class ScanThread(Thread):
             info = json.loads(self.r.text)
             tt = info['tangleTime']
             ni.synced = tt['synced']
+            ni.att = tt['ATT']
             ni.shortId = info['identityIDShort']
             mana = info['mana']
             ni.accessMana = mana['access']
         return ni
 
-    def getKnownNodes(self, ip):
+    def getKnownNodes(self, ip, nodes):
         try:
             self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=3)
             neighbors = json.loads(self.r.text)
         except Exception as inst:
             return "error " + str(type(inst)) + " while querying " + str(ip)
-        known = neighbors['known']
-        count = len(known)
+        n = neighbors['known']
+        for entry in n:
+            nodes.append(entry)
+        return ""
+
+    def queryNodes(self, nodes):
+        count = len(nodes)
         act = 1
-        for entry in known:
+        for entry in nodes:
             services = entry['services']
             ip = services[0]['address']
             if ':' in ip:
                 ip = ip.split(':')[0]
             self.status = "  querying " + ip + "  :  " + str(act) + " / " + str(count)
-            self.ni = self.get(ip)
+            self.ni = self.getNodeInfo(ip)
             self.ni.shortId = entry['id']
             wx.CallAfter(self.postData, 0)
             act = act + 1
             if self.running == False: break
-
-        return ""
 
     def putMessage(self, message):
         self.queue.put(message)

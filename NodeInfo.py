@@ -7,3 +7,4 @@ class NodeInfo:
     synced: bool = False
     enabledAPI: bool = False
     accessMana: int = 0
+    att: int = 0

@@ -8,3 +8,4 @@ class NodeInfo:
     enabledAPI: bool = False
     accessMana: int = 0
     att: int = 0
+    version: str = ""

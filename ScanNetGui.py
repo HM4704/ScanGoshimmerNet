@@ -48,12 +48,15 @@ class GridFrame(wx.Frame):
         pub.subscribe(self.update, "node_listener")
         self.thread = ScanThread.ScanThread(node)
         self.thread.bind_to(self.updateStatus)
+        self.thread.putMessage("127.0.0.1")
 
         self.popupmenu = wx.Menu()
         item = self.popupmenu.Append(-1, "copy IP")
         self.Bind(wx.EVT_MENU, self.OnPopupItemCopyIp, item)
         item = self.popupmenu.Append(-1, "query again")
         self.Bind(wx.EVT_MENU, self.OnPopupItemQuery, item)
+        item = self.popupmenu.Append(-1, "query all")
+        self.Bind(wx.EVT_MENU, self.OnPopupQueryAll, item)
 
         self.list.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
 
@@ -125,6 +128,13 @@ class GridFrame(wx.Frame):
         wx.TheClipboard.SetData(clipdata)
         wx.TheClipboard.Close()
 
+    def OnPopupQueryAll(self, event):
+        item = self.popupmenu.FindItemById(event.GetId())
+        ip = self.GetSelectedIp()
+        if len(ip) > 0:
+            self.thread.putMessage('*' + ip)
+        else:
+            wx.MessageBox("Select a line in the list")
 
     def OnRightDown(self, event):
         if self.list.GetFirstSelected() != -1:

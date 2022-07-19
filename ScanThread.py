@@ -69,6 +69,7 @@ class ScanThread(Thread):
             ni.shortId = info['identityIDShort']
             mana = info['mana']
             ni.accessMana = mana['access']
+            ni.version = info['version']
         return ni
 
     def getKnownNodes(self, ip, nodes):

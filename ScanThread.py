@@ -22,16 +22,15 @@ class ScanThread(Thread):
         self.start()  # start the thread
 
     def run(self):
-        s = self.queryKnownNodes(self.firstIp)
+        self.status = self.queryKnownNodes(self.firstIp)
         while (self.running):
             # Wait for next message
-            self.status = s
             message = self.queue.get()
             print("got message " + message)
             if (len(message) > 0):
                 if message[0] == '*':
                     ip = message[1:]
-                    s = self.queryKnownNodes(ip)
+                    self.status = self.queryKnownNodes(ip)
                 else:
                     self.status = "  querying " + message
                     self.ni = self.getNodeInfo(message)
@@ -47,7 +46,7 @@ class ScanThread(Thread):
 
     def queryKnownNodes(self, ip):
         nodes = []
-        s = self.getKnownNodes(self.firstIp, nodes)
+        s = self.getKnownNodes(ip, nodes)
         if (len(s) == 0):
             s = "  idle"
             self.queryNodes(nodes)

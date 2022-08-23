@@ -49,7 +49,7 @@ class GridFrame(wx.Frame):
         pub.subscribe(self.update, "node_listener")
         self.thread = ScanThread.ScanThread(node)
         self.thread.bind_to(self.updateStatus)
-        self.thread.putMessage("127.0.0.1")
+        self.thread.cmdQuery("127.0.0.1")
 
         self.popupmenu = wx.Menu()
         item = self.popupmenu.Append(-1, "copy IP")
@@ -81,6 +81,9 @@ class GridFrame(wx.Frame):
 
             self.updateLine(index, message)
             self.list.SetItemData(index, key)
+            # do deep search
+            if message.enabledAPI == True:
+                self.thread.cmdQueryAll(message.ip)
 
     def updateLine(self, index, nodeInfo):
             self.list.SetItem(index, 3, str(nodeInfo.enabledAPI))
@@ -115,7 +118,7 @@ class GridFrame(wx.Frame):
         item = self.popupmenu.FindItemById(event.GetId())
         ip = self.GetSelectedIp()
         if len(ip) > 0:
-            self.thread.putMessage(ip)
+            self.thread.cmdQuery(ip)
         else:
             wx.MessageBox("Select a line in the list")
 
@@ -135,7 +138,7 @@ class GridFrame(wx.Frame):
         item = self.popupmenu.FindItemById(event.GetId())
         ip = self.GetSelectedIp()
         if len(ip) > 0:
-            self.thread.putMessage('*' + ip)
+            self.thread.cmdQueryAll(ip)
         else:
             wx.MessageBox("Select a line in the list")
 
@@ -153,7 +156,7 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="65.108.62.220",
+    parser.add_argument('-node', type=str, default="65.108.62.225",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

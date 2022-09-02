@@ -33,6 +33,8 @@ class ScanThread(Thread):
                 if message[0] == '*':
                     ip = message[1:]
                     self.status = self.queryKnownNodes(ip)
+                elif message[0] == 'c':
+                    self.inaccNodes.clear()
                 else:
                     self.status = "  querying " + message
                     self.ni,self.status = self.getNodeInfo(message)
@@ -60,7 +62,7 @@ class ScanThread(Thread):
         if ip in self.inaccNodes:
             return (ni, self.inaccNodes[ip])            
         try:
-            self.r = requests.get('http://' + ip + ':8080/info', timeout=1)
+            self.r = requests.get('http://' + ip + ':8080/info', timeout=2)
         except Exception as inst:
             err = "error " + str(type(inst)) + " while querying " + str(ip)
             self.inaccNodes[ip] = err
@@ -79,7 +81,7 @@ class ScanThread(Thread):
 
     def getKnownNodes(self, ip, nodes):
         try:
-            self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=1)
+            self.r = requests.get('http://' + ip + ':8080/autopeering/neighbors?known=1', timeout=3)
             neighbors = json.loads(self.r.text)
         except Exception as inst:
             return "error " + str(type(inst)) + " while querying " + str(ip)
@@ -120,8 +122,11 @@ class ScanThread(Thread):
     def bind_to(self, callback):
         self._observers.append(callback)
         
-    def cmdQueryAll(self, ip):
+    def cmdQueryAll(self, ip, clear=False):
+        if clear == True:
+            self.putMessage('c')            
         self.putMessage('*' + ip)
         
     def cmdQuery(self, ip):
         self.putMessage(ip)
+

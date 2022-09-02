@@ -56,8 +56,8 @@ class GridFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnPopupItemCopyIp, item)
         item = self.popupmenu.Append(-1, "query again")
         self.Bind(wx.EVT_MENU, self.OnPopupItemQuery, item)
-        item = self.popupmenu.Append(-1, "query all")
-        self.Bind(wx.EVT_MENU, self.OnPopupQueryAll, item)
+        self.mnItemQueryAll = self.popupmenu.Append(-1, "query all")
+        self.Bind(wx.EVT_MENU, self.OnPopupQueryAll, self.mnItemQueryAll)
 
         self.list.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
 
@@ -114,6 +114,13 @@ class GridFrame(wx.Frame):
             return ip
         return ""
 
+    def HasSelectedApi(self):
+        item = self.list.GetFirstSelected()
+        if item != -1:
+            api = self.list.GetItemText(item, col=3)
+            return api == 'True'
+        return False
+
     def OnPopupItemQuery(self, event):
         item = self.popupmenu.FindItemById(event.GetId())
         ip = self.GetSelectedIp()
@@ -138,7 +145,9 @@ class GridFrame(wx.Frame):
         item = self.popupmenu.FindItemById(event.GetId())
         ip = self.GetSelectedIp()
         if len(ip) > 0:
-            self.thread.cmdQueryAll(ip)
+            self.list.DeleteAllItems()
+            self.nodes.clear()
+            self.thread.cmdQueryAll(ip, clear=True)
         else:
             wx.MessageBox("Select a line in the list")
 
@@ -146,6 +155,7 @@ class GridFrame(wx.Frame):
         if self.list.GetFirstSelected() != -1:
             pos = event.GetPosition()
             #pos = self.list.ScreenToClient(pos)
+            self.mnItemQueryAll.Enable(self.HasSelectedApi())
             self.PopupMenu(self.popupmenu, pos)
 
 
@@ -156,7 +166,7 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="65.108.62.225",
+    parser.add_argument('-node', type=str, default="65.108.62.230",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

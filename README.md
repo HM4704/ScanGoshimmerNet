@@ -10,7 +10,8 @@ The following dependencies have to be installed (besides python3):
 - sudo apt-get install libgtk-3-0
 - sudo apt-get install libgtk-3-dev
 - pip install wxpython
-- pip install pypubsub 
+- pip install pypubsub
+- pip install websockets
 
 ## Execution
 python ScanNetGui.py [-node start_node]

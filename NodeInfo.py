@@ -9,3 +9,4 @@ class NodeInfo:
     accessMana: int = 0
     att: int = 0
     version: str = ""
+    indexer: bool = False

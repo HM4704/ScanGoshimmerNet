@@ -33,7 +33,7 @@ class GridFrame(wx.Frame):
         self.list.InsertColumn(1, 'ID', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(2, 'synced', wx.LIST_FORMAT_CENTER, 150)
         self.list.InsertColumn(3, 'API(Port 8080)', wx.LIST_FORMAT_CENTER, 150)
-        self.list.InsertColumn(4, 'aMana', wx.LIST_FORMAT_RIGHT, 150)
+        self.list.InsertColumn(4, 'Indexer', wx.LIST_FORMAT_RIGHT, 150)
         self.list.InsertColumn(5, 'ATT', wx.LIST_FORMAT_RIGHT, 200)
         self.list.InsertColumn(6, 'Version', wx.LIST_FORMAT_RIGHT, 100)
 
@@ -50,6 +50,7 @@ class GridFrame(wx.Frame):
         self.thread = ScanThread.ScanThread(node)
         self.thread.bind_to(self.updateStatus)
         self.thread.cmdQuery("127.0.0.1")
+        #self.thread.cmdQuery("localhost:8051")
 
         self.popupmenu = wx.Menu()
         item = self.popupmenu.Append(-1, "copy IP")
@@ -58,17 +59,22 @@ class GridFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnPopupItemQuery, item)
         self.mnItemQueryAll = self.popupmenu.Append(-1, "query all")
         self.Bind(wx.EVT_MENU, self.OnPopupQueryAll, self.mnItemQueryAll)
+        self.mnItemQueryAll = self.popupmenu.Append(-1, "refresh all")
+        self.Bind(wx.EVT_MENU, self.RefreshAllNodes, self.mnItemQueryAll)
 
         self.list.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
-
+        
         self.Show(True)
 
+    def on_button_click(self, event):
+        wx.MessageBox("Button clicked!")
+        
     def updateItem(self, nodeInfo):
         for idx in range(0, self.list.GetItemCount()):
             ip = self.list.GetItemText(idx, 0)
             if ip == nodeInfo.ip:
                 key = self.list.GetItemData(idx)
-                self.nodes[key] = (nodeInfo.ip, nodeInfo.shortId,nodeInfo.synced,nodeInfo.enabledAPI,nodeInfo.accessMana,nodeInfo.att,nodeInfo.version)
+                self.nodes[key] = (nodeInfo.ip, nodeInfo.shortId,nodeInfo.synced,nodeInfo.enabledAPI,nodeInfo.indexer,nodeInfo.att,nodeInfo.version)
                 self.updateLine(idx, nodeInfo)
                 return True
         return False
@@ -76,7 +82,7 @@ class GridFrame(wx.Frame):
     def update(self, message, arg2=None):
         if not self.updateItem(message):
             key = len(self.nodes)
-            self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.accessMana,message.att,message.version)
+            self.nodes[key] = (message.ip,message.shortId,message.synced,message.enabledAPI,message.indexer,message.att,message.version)
             index = self.list.InsertItem(0, message.ip)
 
             self.updateLine(index, message)
@@ -90,7 +96,7 @@ class GridFrame(wx.Frame):
             self.list.SetItem(index, 1, nodeInfo.shortId)
             if nodeInfo.enabledAPI:
                 self.list.SetItem(index, 2, str(nodeInfo.synced))
-                self.list.SetItem(index, 4, str(nodeInfo.accessMana))
+                self.list.SetItem(index, 4, str(nodeInfo.indexer))
                 att = str(datetime.fromtimestamp(nodeInfo.att/1000000000))
                 att = att.split('.')[0]  # throw away decimals
                 self.list.SetItem(index, 5, att)
@@ -114,6 +120,13 @@ class GridFrame(wx.Frame):
             return ip
         return ""
 
+    def GetSelectedID(self):
+        item = self.list.GetFirstSelected()
+        if item != -1:
+            id = self.list.GetItemText(item, 1)
+            return id
+        return ""
+
     def HasSelectedApi(self):
         item = self.list.GetFirstSelected()
         if item != -1:
@@ -125,7 +138,8 @@ class GridFrame(wx.Frame):
         item = self.popupmenu.FindItemById(event.GetId())
         ip = self.GetSelectedIp()
         if len(ip) > 0:
-            self.thread.cmdQuery(ip)
+            id = self.GetSelectedID()
+            self.thread.cmdQuery(ip + ':' + id)
         else:
             wx.MessageBox("Select a line in the list")
 
@@ -151,6 +165,14 @@ class GridFrame(wx.Frame):
         else:
             wx.MessageBox("Select a line in the list")
 
+    def RefreshAllNodes(self, event):
+        item_count = self.list.GetItemCount()
+        for item_index in range(item_count):
+            ip = self.list.GetItemText(item_index, 0)
+            id = self.list.GetItemText(item_index, 1)
+            self.thread.cmdQuery(ip + ":" +  id)
+            
+            
     def OnRightDown(self, event):
         if self.list.GetFirstSelected() != -1:
             pos = event.GetPosition()
@@ -166,7 +188,7 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="65.108.62.230",
+    parser.add_argument('-node', type=str, default="192.168.178.33",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

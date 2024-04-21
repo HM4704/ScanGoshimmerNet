@@ -23,33 +23,33 @@ class GridFrame(wx.Frame):
     nodes = {}
 
     def __init__(self, parent, node):
-        wx.Frame.__init__(self, parent, title="Goshimmer nodes", size=(1100,800))
+        wx.Frame.__init__(self, parent, title="IOTA-CORE nodes", size=(1300,800))
 
         panel = wx.Panel(self)
         box = wx.BoxSizer(wx.HORIZONTAL)
 
         self.list = SortedListCtrl(panel, data=self.nodes, colCount=7)
         self.list.InsertColumn(0, 'IP', wx.LIST_FORMAT_CENTER, 150)
-        self.list.InsertColumn(1, 'ID', wx.LIST_FORMAT_CENTER, 150)
+        self.list.InsertColumn(1, 'ID', wx.LIST_FORMAT_CENTER, 250)
         self.list.InsertColumn(2, 'synced', wx.LIST_FORMAT_CENTER, 150)
-        self.list.InsertColumn(3, 'API(Port 8080)', wx.LIST_FORMAT_CENTER, 150)
-        self.list.InsertColumn(4, 'Indexer', wx.LIST_FORMAT_RIGHT, 150)
+        self.list.InsertColumn(3, 'API Port', wx.LIST_FORMAT_CENTER, 150)
+        self.list.InsertColumn(4, 'Indexer', wx.LIST_FORMAT_RIGHT, 100)
         self.list.InsertColumn(5, 'ATT', wx.LIST_FORMAT_RIGHT, 200)
-        self.list.InsertColumn(6, 'Version', wx.LIST_FORMAT_RIGHT, 100)
+        self.list.InsertColumn(6, 'Version', wx.LIST_FORMAT_RIGHT, 150)
 
         box.Add(self.list, 1, wx.EXPAND)
         panel.SetSizer(box)
         panel.Fit()
 
         self.statusBar = self.CreateStatusBar(style = wx.BORDER_NONE|wx.RIGHT)
-        self.statusBar.SetStatusText("Status Bar")
+        self.statusBar.SetStatusText("initializing")
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         pub.subscribe(self.update, "node_listener")
         self.thread = ScanThread.ScanThread(node)
         self.thread.bind_to(self.updateStatus)
-        self.thread.cmdQuery("127.0.0.1")
+        ##self.thread.cmdQuery("127.0.0.1")
         #self.thread.cmdQuery("localhost:8051")
 
         self.popupmenu = wx.Menu()
@@ -61,13 +61,18 @@ class GridFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnPopupQueryAll, self.mnItemQueryAll)
         self.mnItemQueryAll = self.popupmenu.Append(-1, "refresh all")
         self.Bind(wx.EVT_MENU, self.RefreshAllNodes, self.mnItemQueryAll)
+        self.list.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
 
         self.list.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
         
         self.Show(True)
 
-    def on_button_click(self, event):
-        wx.MessageBox("Button clicked!")
+    def OnKeyDown(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_F5:
+            self.RefreshAllNodes(event)
+        else:
+            event.Skip()
         
     def updateItem(self, nodeInfo):
         for idx in range(0, self.list.GetItemCount()):
@@ -188,7 +193,8 @@ class GridFrame(wx.Frame):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scan goshimmer network')
-    parser.add_argument('-node', type=str, default="192.168.178.33",
+    # parser.add_argument('-node', type=str, default="192.168.178.33",
+    parser.add_argument('-node', type=str, default="172.23.0.2",
                         help='bootstrap node to start the scan')
 
     args = parser.parse_args()

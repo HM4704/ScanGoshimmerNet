@@ -64,18 +64,11 @@ class ScanThread(Thread):
                 wx.CallAfter(self.postData, 0)
                 wx.Sleep(1) ## let postData() run
         return s
-
-    def checkIpFormat(self, ip):
-        try:
-            ipaddress.IPv4Address(ip)
-            return True
-        except ipaddress.AddressValueError:
-            return False        
         
     def getNodeInfo(self, ip):
         self.status = "  querying " + ip
         ni = NodeInfo.NodeInfo()
-        parts = ip.split(':')
+        parts = ip.split('!')
         if len(parts) > 1:
             if self.checkIpFormat(parts[0]):
                 ni.ip = parts[0]
@@ -90,12 +83,8 @@ class ScanThread(Thread):
         access = False
         err = "unkown error"
         for p in self.portsChoices:
-            try:
-                # http://localhost:8080/api/core/v3/info:
-                self.r = requests.get('http://' + ip + p + '/api/core/v3/info', timeout=2)
-            except Exception as inst:
-                err = "error " + str(type(inst)) + " while querying " + str(ip)
-                #return (ni, err)
+            self.r, err = self.request(ip, p, '/api/core/v3/info')
+            if len(err) > 0:
                 continue
             if self.r.ok == True:
                 access = True
@@ -118,14 +107,11 @@ class ScanThread(Thread):
             return (ni, err)
 
     def getRoutes(self, ip, port):
-        parts = ip.split(':')
-        if len(parts) > 1:
-            ip = parts[0]
         if ip in self.inaccNodes:
             return ""
         try:
             # http://localhost:8080/api/routes:
-            self.r = requests.get('http://' + ip + port + '/api/routes', timeout=2)
+            self.r,e = self.request(ip, port, '/api/routes')
             if self.r.ok == True:
                 #print(f"Received: {self.r.text}")
                 return self.r.text
@@ -136,32 +122,14 @@ class ScanThread(Thread):
 
     def getKnownNodes(self, ip, nodes):
         self.status = "  querying " + ip + " for neighbors"
-        try:
-            # http://192.168.178.33:14265/api/management/v1/peers
-            self.r = requests.get('http://' + ip + ':14265/api/management/v1/peers', timeout=3)
-            neighbors = json.loads(self.r.text)                        
-        except Exception as inst:
-            return "error " + str(type(inst)) + " while querying " + str(ip)
+        self.r,err = self.request(ip, ':14265', '/api/management/v1/peers')
+        if len(err) > 0:
+            return err
+        neighbors = json.loads(self.r.text)                        
         n = neighbors['peers']
         if n != None:
             for entry in n:
                 nodes.append(entry)
-        return ""
-
-
-    def getValidIp(self, entry):
-        # returns Ip if valid, examples for entries:
-        # "/ip4/91.43.149.64/tcp/0",
-        # "/ip4/80.141.38.1/tcp/0",
-        # "/ip6/2003:d4:c74b:b000:91db:66a7:5564:5224/tcp/15600",
-        # "/ip4/127.0.0.1/tcp/15600",
-        # "/ip4/192.168.178.33/tcp/15600",
-        # "/ip6/::1/tcp/15600",
-        # "/ip6/2003:d4:c72b:3700:9014:24e8:fac0:793a/tcp/15600"
-        if '/' in entry:
-            parts = entry.split('/')
-            if (parts[1] == "ip4") and (parts[4] == "15600") and (parts[2] != "127.0.0.1"):
-                return parts[2]
         return ""
 
     def queryNodes(self, nodes):
@@ -180,6 +148,50 @@ class ScanThread(Thread):
                     if self.running == False: break
                     if err == self.idleStatus: break
 
+    def getValidIp(self, entry):
+        # returns Ip if valid, examples for entries:
+        # "/ip4/91.43.149.64/tcp/0",
+        # "/ip4/80.141.38.1/tcp/0",
+        # "/ip6/2003:d4:c74b:b000:91db:66a7:5564:5224/tcp/15600",
+        # "/ip4/127.0.0.1/tcp/15600",
+        # "/ip4/192.168.178.33/tcp/15600",
+        # "/ip6/::1/tcp/15600",
+        # "/ip6/2003:d4:c72b:3700:9014:24e8:fac0:793a/tcp/15600"
+        if '/' in entry:
+            parts = entry.split('/')
+            if (parts[4] == "15600") and (parts[2] != "127.0.0.1") and (parts[2] != "::1"):
+                return parts[2]
+        return ""
+
+    def isIpV6Format(self, ip):
+        try:
+            ipaddress.IPv6Address(ip)
+            return True
+        except ipaddress.AddressValueError:
+            return False        
+        
+    def checkIpFormat(self, ip):
+        try:
+            ipaddress.IPv4Address(ip)
+            return True
+        except ipaddress.AddressValueError:
+            try:
+                ipaddress.IPv6Address(ip)
+                return True
+            except ipaddress.AddressValueError:
+                return False        
+        
+    def request(self, ip, port, path):
+        try:
+            if self.isIpV6Format(ip):
+                self.r = requests.get('http://[' + ip + ']' + port + path, timeout=2)
+            else:
+                self.r = requests.get('http://' + ip + port + path, timeout=2)
+        except Exception as inst:
+            err = "error " + str(type(inst)) + " while querying " + str(ip)
+            return (self.r, err)
+        return (self.r, "")
+    
     def putMessage(self, message):
         self.queue.put(message)
 

@@ -144,7 +144,7 @@ class GridFrame(wx.Frame):
         ip = self.GetSelectedIp()
         if len(ip) > 0:
             id = self.GetSelectedID()
-            self.thread.cmdQuery(ip + ':' + id)
+            self.thread.cmdQuery(ip + '!' + id)
         else:
             wx.MessageBox("Select a line in the list")
 
@@ -175,7 +175,7 @@ class GridFrame(wx.Frame):
         for item_index in range(item_count):
             ip = self.list.GetItemText(item_index, 0)
             id = self.list.GetItemText(item_index, 1)
-            self.thread.cmdQuery(ip + ":" +  id)
+            self.thread.cmdQuery(ip + '!' +  id)
             
             
     def OnRightDown(self, event):
